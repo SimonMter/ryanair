@@ -33,10 +33,10 @@
     }
 
     .stats-panel {
-        position: absolute; bottom: 20px; left: 20px;
+        position: absolute; bottom: 10%; left: 20px;
         background: var(--ui-bg); padding: 12px 20px;
         border-radius: 15px; border: 2px solid var(--primary-yellow);
-        pointer-events: auto; min-width: 150px;
+        pointer-events: auto; max-width: 75vw; 
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
 
@@ -87,7 +87,7 @@
         background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
         padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);
         display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 500px;
-        max-height: 80vh; overflow-y: auto;
+        max-height: 55vh; overflow-y: auto;
     }
 
     .route-card {
@@ -135,11 +135,58 @@
         box-shadow: 0 4px 0 #c0392b; font-size: 1.1rem; padding: 10px 20px;
     }
 
+    .scratch-slot {
+        background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+        border: 2px solid #bdc3c7;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: #2c3e50;
+        cursor: pointer;
+        user-select: none;
+        box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 3px 6px rgba(0,0,0,0.15);
+        transition: all 0.15s ease;
+        text-align: center;
+        padding: 5px;
+    }
+    .scratch-slot:hover {
+        background: linear-gradient(135deg, #95a5a6, #b2bec3);
+    }
+    .scratch-slot.revealed {
+        background: #fff !important;
+        border-color: var(--primary-yellow) !important;
+        color: var(--primary-blue) !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    }
+    .scratch-slot.win-symbol {
+        color: #27ae60 !important;
+        font-size: 1.05rem;
+    }
+    .scratch-slot.fail-symbol {
+        color: #c0392b !important;
+    }
+
+    .modifier-badge {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 2px 6px;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        color: white;
+        font-weight: bold;
+    }
+
     @media (max-width: 600px) {
         #throttle-control { right: 10px; height: 200px; width: 60px; }
         #slider-track { height: 120px; }
-        .stats-panel { bottom: 10px; left: 10px; padding: 10px; min-width: 120px; }
-        #emergency-btn { bottom: 140px; font-size: 0.9rem; }
+        .stats-panel { bottom: 10%; left: 50%; max-width:40vw}
+        #emergency-btn { bottom: 160px; font-size: 0.9rem; }
     }
 </style>
 </head>
@@ -154,6 +201,7 @@
             <div class="satisfaction-display">PASSENGERS: <span id="satisfaction">100</span>%</div>
             <div style="font-size: 0.7rem; opacity: 0.8; letter-spacing: 1px;">FUEL CAPACITY</div>
             <div class="fuel-bar-container"><div id="fuel-bar"></div></div>
+            <div id="active-modifiers-display" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;"></div>
         </div>
 
         <div class="progress-container hidden" id="dist-container">
@@ -189,11 +237,32 @@
     </div>
 
     <div id="shop-screen" class="screen hidden">
-        <h2>FLEET UPGRADES</h2>
+        <h2>HANGAR & REVENUE</h2>
         <div class="menu-container">
-            <div id="shop-list"></div>
+            <div style="margin-bottom: 20px; padding: 15px; background: rgba(241, 196, 15, 0.2); border-radius: 10px; border: 1px solid var(--primary-yellow);">
+                <h3 style="margin: 0; color: var(--primary-yellow);">RYANAIR SCRATCH CARDS</h3>
+                <p style="font-size: 0.8rem; margin: 5px 0 15px;">You have: <span id="card-count">0</span> cards</p>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" style="flex: 1; padding: 10px;" onclick="buyCard()">BUY CARD (€50)</button>
+                    <button id="open-card-btn" class="btn" style="flex: 1; padding: 10px;" onclick="showScratchUI()">OPEN CARD</button>
+                </div>
+            </div>
+            <h3>FLEET UPGRADES</h3>
+            <div id="shop-list" style="margin-bottom: 20px;"></div>
+            <h3>FLIGHT MODIFIERS</h3>
+            <div id="modifier-list"></div>
         </div>
         <button id="back-from-shop" class="btn btn-secondary" style="margin-top: 20px;">BACK TO MENU</button>
+    </div>
+
+    <div id="scratch-overlay" class="screen hidden" style="background: rgba(0,0,0,0.95);">
+        <h2 style="color: var(--primary-yellow); margin-bottom: 5px;">RYANAIR LUCKY SCRATCH</h2>
+        <p style="margin: 0 0 15px; font-size: 0.9rem; opacity: 0.8;">Match 3 identical items to win that prize!</p>
+        <div id="scratch-card-box" style="width: 320px; height: 320px; background: linear-gradient(135deg, #1a2a6c, #2759c2); border: 4px solid var(--primary-yellow); border-radius: 15px; position: relative; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 15px; gap: 10px; box-sizing: border-box;">
+            <!-- Dynamically populated slots -->
+        </div>
+        <p id="scratch-msg" style="margin: 15px 0 0; color: white; font-weight: bold; font-size: 1.2rem;">TAP CARDS TO SCRATCH!</p>
+        <button id="close-scratch-btn" class="btn btn-secondary hidden" style="margin-top: 20px;" onclick="closeScratchUI()">BACK</button>
     </div>
 
     <div id="msg-overlay" class="screen hidden">
@@ -214,6 +283,7 @@ const sliderThumb = document.getElementById("slider-thumb");
 const progressBar = document.getElementById("progress-bar");
 const distContainer = document.getElementById("dist-container");
 const phaseLabel = document.getElementById("phase-label");
+const satisfactionEl = document.getElementById("satisfaction");
 
 const screens = {
     start: document.getElementById("start-screen"),
@@ -225,12 +295,23 @@ const screens = {
 const UPGRADES = {
     fuel: { name: "Extended Fuel Tank", desc: "Adds 20% more fuel capacity", price: 150, level: 0, max: 5 },
     efficiency: { name: "Engine Efficiency", desc: "Reduces fuel drain by 10%", price: 200, level: 0, max: 5 },
-    glide: { name: "Lightweight Parts", desc: "Improves gliding when unpowered", price: 250, level: 0, max: 5 }
+    glide: { name: "Lightweight Parts", desc: "Improves gliding when unpowered", price: 250, level: 0, max: 5 },
+    comfort: { name: "Cabin Comfort", desc: "Reduces passenger satisfaction loss", price: 300, level: 0, max: 5 }
+};
+
+const MODIFIERS = {
+    nightFlight: { name: "Night Operations 🌙", desc: "Fly under the stars. Earn +50% flight fare payout, but background is dark.", price: 400 },
+    lockToilets: { name: "Lock Toilets 🚾🔒", desc: "Reduces fuel drain by 15%, but passenger satisfaction drops 20% faster.", price: 250 },
+    dutyFree: { name: "Duty Free Trolley 🛍️", desc: "Cruise-phase steady flying sales reward is increased from €50 to €100.", price: 350 },
+    priorityBoarding: { name: "Priority Boarding 🎫", desc: "Start flights at 125% passenger satisfaction for larger safe landing payouts.", price: 300 },
+    standingCabins: { name: "Standing Cabins 🧍", desc: "Remove all seats! +40% fare payout, but satisfaction drops 50% faster, and turbulence is 50% rougher.", price: 500 },
+    paSpam: { name: "PA Intercom Spam 📢", desc: "Blast scratch card ads on loop. Steady fly sales trigger twice as fast, but satisfaction constantly drops.", price: 350 },
+    budgetPilot: { name: "Budget Co-Pilot 🧑‍✈️", desc: "Hire an unpaid intern co-pilot. +25% fare payout, but throttle thrust response is sluggish.", price: 450 },
+    oxygenSurcharge: { name: "Oxygen Surcharge 💨", desc: "Charge passengers for oxygen. Generates continuous cash during cruise, but starts flight with -50% satisfaction capacity.", price: 400 }
 };
 
 const PHASES = { TAKEOFF: 'takeoff', CRUISE: 'cruise', LANDING: 'landing' };
 
-// Logical Route Generation
 const CITIES = ["Dublin", "London", "Paris", "Berlin", "Rome", "Madrid", "Lisbon", "Vienna", "Warsaw", "Brussels"];
 function generateRoutes() {
     const routes = [];
@@ -241,35 +322,56 @@ function generateRoutes() {
         const to = shuffled[(i + 1) % shuffled.length];
         const distance = Math.floor(3000 + Math.random() * 9000);
         const payout = Math.floor(distance / 40 + 50); 
-        routes.push({ name: `${from} → ${to}`, dist: distance, pay: payout });
+        const wind = (Math.random() - 0.5) * 0.15; 
+        routes.push({ name: `${from} → ${to}`, dist: distance, pay: payout, wind: wind });
     }
     return routes;
 }
 
+const defaultMods = {
+    nightFlight: false,
+    lockToilets: false,
+    dutyFree: false,
+    priorityBoarding: false,
+    standingCabins: false,
+    paSpam: false,
+    budgetPilot: false,
+    oxygenSurcharge: false
+};
 let state = {
     money: parseInt(localStorage.getItem('ryanair_money')) || 0,
-    upgrades: JSON.parse(localStorage.getItem('ryanair_upgrades')) || { fuel: 0, efficiency: 0, glide: 0 },
+    upgrades: JSON.parse(localStorage.getItem('ryanair_upgrades')) || { fuel: 0, efficiency: 0, glide: 0, comfort: 0 },
+    modifiers: Object.assign({}, defaultMods, JSON.parse(localStorage.getItem('ryanair_modifiers'))),
+    ownedModifiers: Object.assign({}, defaultMods, JSON.parse(localStorage.getItem('ryanair_owned_modifiers'))),
     currentRoute: null,
     phase: null,
     progress: 0,
     fuel: 100,
     throttle: 0,
+    targetThrottle: 0,
+    satisfaction: 100,
     player: { x: 40, y: 0, vy: 0, w: 80, h: 28 },
     obstacles: [], snacks: [], clouds: [], houses: [],
+    turbulences: [],
     runways: [],
     groundOffset: 0, lastTime: 0, started: false, gameOver: false,
     emergencyLanding: false,
+    invincibleTime: 0,
     lastObstacleX: 0,
-    lastHouseX: 0
+    lastHouseX: 0,
+    scratchCardActive: false,
+    scratchCardTimer: 0,
+    scratchCardProgress: 0,
+    inventoryCards: parseInt(localStorage.getItem('ryanair_cards')) || 0,
+    stars: []
 };
 
-// Update shop UI
 function updateShop() {
     const list = document.getElementById("shop-list");
     list.innerHTML = "";
     Object.keys(UPGRADES).forEach(id => {
         const up = UPGRADES[id];
-        const level = state.upgrades[id];
+        const level = state.upgrades[id] || 0;
         const item = document.createElement("div");
         item.className = "shop-item";
         item.innerHTML = `
@@ -283,16 +385,209 @@ function updateShop() {
         `;
         list.appendChild(item);
     });
+
+    const modList = document.getElementById("modifier-list");
+    modList.innerHTML = "";
+    Object.keys(MODIFIERS).forEach(id => {
+        const mod = MODIFIERS[id];
+        const owned = state.ownedModifiers[id];
+        const active = state.modifiers[id];
+        const item = document.createElement("div");
+        item.className = "shop-item";
+        
+        let actionBtnHTML = "";
+        if (!owned) {
+            actionBtnHTML = `
+                <button class="btn" ${state.money < mod.price ? 'disabled' : ''} onclick="buyModifier('${id}')">
+                    €${mod.price}
+                </button>
+            `;
+        } else {
+            actionBtnHTML = `
+                <button class="btn ${active ? '' : 'btn-secondary'}" style="padding: 10px 15px;" onclick="toggleModifier('${id}')">
+                    ${active ? 'ACTIVE' : 'INACTIVE'}
+                </button>
+            `;
+        }
+        
+        item.innerHTML = `
+            <div class="shop-item-info">
+                <h4>${mod.name}</h4>
+                <p>${mod.desc}</p>
+            </div>
+            ${actionBtnHTML}
+        `;
+        modList.appendChild(item);
+    });
+
     document.getElementById("menu-money").innerText = state.money;
+    document.getElementById("card-count").innerText = state.inventoryCards;
+    document.getElementById("open-card-btn").disabled = state.inventoryCards <= 0;
 }
+
+window.buyCard = () => {
+    if (state.money >= 50) {
+        state.money -= 50;
+        state.inventoryCards++;
+        saveGamble();
+        updateShop();
+    }
+};
+
+window.buyModifier = (id) => {
+    const mod = MODIFIERS[id];
+    if (state.money >= mod.price && !state.ownedModifiers[id]) {
+        state.money -= mod.price;
+        state.ownedModifiers[id] = true;
+        state.modifiers[id] = true; // Active by default
+        saveGamble();
+        updateShop();
+    }
+};
+
+window.toggleModifier = (id) => {
+    if (state.ownedModifiers[id]) {
+        state.modifiers[id] = !state.modifiers[id];
+        saveGamble();
+        updateShop();
+    }
+};
+
+function saveGamble() {
+    localStorage.setItem('ryanair_money', state.money);
+    localStorage.setItem('ryanair_cards', state.inventoryCards);
+    localStorage.setItem('ryanair_upgrades', JSON.stringify(state.upgrades));
+    localStorage.setItem('ryanair_modifiers', JSON.stringify(state.modifiers));
+    localStorage.setItem('ryanair_owned_modifiers', JSON.stringify(state.ownedModifiers));
+}
+
+let currentScratchCard = { grid: [], winAmount: 0 };
+let revealedCount = 0;
+let revealedIndices = {};
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function generateScratchCard() {
+    const symbols = ["€20", "€40", "€60", "€120", "€300", "€1000", "€100,000", "Lost Bag 💼", "Delay ⏳", "Extra Fee 💸", "No Legroom 💺", "Middle Seat 💺"];
+    const winRoll = Math.random();
+    let winVal = null;
+    let winAmount = 0;
+    
+    // Payout percentages:
+    // 30% chance: Win €0 (net -€50)
+    // 25% chance: Win €20 (net -€30)
+    // 20% chance: Win €40 (net -€10)
+    // 15% chance: Win €60 (net +€10)
+    // 7% chance: Win €120 (net +€70)
+    // 2.5% chance: Win €300 (net +€250)
+    // 0.49% chance: Win €1000 (net +€950)
+    // 0.01% chance: Win €100,000 (Mega Jackpot! 1 in 10,000 cards)
+    if (winRoll < 0.25) { winVal = "€20"; winAmount = 20; }
+    else if (winRoll < 0.45) { winVal = "€40"; winAmount = 40; }
+    else if (winRoll < 0.60) { winVal = "€60"; winAmount = 60; }
+    else if (winRoll < 0.67) { winVal = "€120"; winAmount = 120; }
+    else if (winRoll < 0.695) { winVal = "€300"; winAmount = 300; }
+    else if (winRoll < 0.6999) { winVal = "€1000"; winAmount = 1000; }
+    else if (winRoll < 0.70) { winVal = "€100,000"; winAmount = 100000; }
+    
+    let grid = [];
+    if (winVal) {
+        grid.push(winVal, winVal, winVal);
+        const otherSymbols = symbols.filter(s => s !== winVal);
+        shuffleArray(otherSymbols);
+        grid.push(otherSymbols[0], otherSymbols[0]);
+        grid.push(otherSymbols[1], otherSymbols[1]);
+        grid.push(otherSymbols[2], otherSymbols[2]);
+    } else {
+        shuffleArray(symbols);
+        grid.push(symbols[0], symbols[0]);
+        grid.push(symbols[1], symbols[1]);
+        grid.push(symbols[2], symbols[2]);
+        grid.push(symbols[3], symbols[3]);
+        grid.push(symbols[4]);
+    }
+    
+    shuffleArray(grid);
+    return { grid, winAmount };
+}
+
+window.showScratchUI = () => {
+    if (state.inventoryCards <= 0) return;
+    state.inventoryCards--;
+    saveGamble();
+    document.getElementById("scratch-overlay").classList.remove("hidden");
+    document.getElementById("close-scratch-btn").classList.add("hidden");
+    document.getElementById("scratch-msg").innerText = "TAP CARDS TO SCRATCH!";
+    
+    currentScratchCard = generateScratchCard();
+    revealedCount = 0;
+    revealedIndices = {};
+    
+    const box = document.getElementById("scratch-card-box");
+    box.innerHTML = "";
+    
+    for (let i = 0; i < 9; i++) {
+        const slot = document.createElement("div");
+        slot.className = "scratch-slot";
+        slot.innerText = "?";
+        slot.onclick = () => scratchSlot(i);
+        box.appendChild(slot);
+    }
+};
+
+window.scratchSlot = (index) => {
+    if (revealedIndices[index]) return;
+    revealedIndices[index] = true;
+    revealedCount++;
+    
+    const slots = document.querySelectorAll("#scratch-card-box .scratch-slot");
+    const val = currentScratchCard.grid[index];
+    slots[index].innerText = val;
+    slots[index].classList.add("revealed");
+    
+    if (val.startsWith("€")) {
+        slots[index].classList.add("win-symbol");
+    } else {
+        slots[index].classList.add("fail-symbol");
+    }
+    
+    if (revealedCount === 9) {
+        const win = currentScratchCard.winAmount;
+        if (win > 0) {
+            state.money += win;
+            saveGamble();
+            document.getElementById("scratch-msg").innerText = `🎉 MATCH 3! YOU WON €${win}! 🎉`;
+        } else {
+            const loseMsgs = [
+                "NO MATCH! Better luck next flight!",
+                "YOU LOST! Ryanair thanks you for your donation.",
+                "NO MATCH! Would you like to pay a €10 retry fee?",
+                "TRY AGAIN! Michael O'Leary needs a new yacht.",
+                "NO WINNER! But your luggage was successfully lost anyway.",
+                "LOST! Ryanair seat recline not included."
+            ];
+            document.getElementById("scratch-msg").innerText = loseMsgs[Math.floor(Math.random() * loseMsgs.length)];
+        }
+        document.getElementById("close-scratch-btn").classList.remove("hidden");
+    }
+};
+
+window.closeScratchUI = () => {
+    document.getElementById("scratch-overlay").classList.add("hidden");
+    updateShop();
+};
 
 window.buyUpgrade = (id) => {
     const up = UPGRADES[id];
-    if (state.money >= up.price && state.upgrades[id] < up.max) {
+    if (state.money >= up.price && (state.upgrades[id] || 0) < up.max) {
         state.money -= up.price;
-        state.upgrades[id]++;
-        localStorage.setItem('ryanair_money', state.money);
-        localStorage.setItem('ryanair_upgrades', JSON.stringify(state.upgrades));
+        state.upgrades[id] = (state.upgrades[id] || 0) + 1;
+        saveGamble();
         updateShop();
     }
 };
@@ -317,13 +612,8 @@ document.getElementById("to-routes-btn").onclick = () => {
     generateRoutes().forEach(r => {
         const card = document.createElement("div");
         card.className = "route-card";
-        card.innerHTML = `
-            <div>
-                <h3>${r.name}</h3>
-                <p>${Math.floor(r.dist / 100)}km | Expected Profit</p>
-            </div>
-            <div class="route-payout">€${r.pay}</div>
-        `;
+        const windDesc = Math.abs(r.wind) > 0.05 ? "Turbulent" : "Calm";
+        card.innerHTML = `<div><h3>${r.name}</h3><p>${Math.floor(r.dist / 100)}km | Sky: ${windDesc}</p></div><div class="route-payout">€${r.pay}</div>`;
         card.onclick = () => initFlight(r);
         list.appendChild(card);
     });
@@ -341,25 +631,16 @@ imgs.fuel.src = "fuel.png"; imgs.bird.src = "bird.png"; imgs.turbin.src = "turbi
 let screenW, screenH;
 function resize() {
     const winW = window.innerWidth; const winH = window.innerHeight;
-    const isPC = winW > winH;
-    const zoom = isPC ? 1.0 : 1.5; 
-    
-    // Logical dimensions: what the game "thinks" the size is
-    const targetW = isPC ? 700 : winW;
-    screenW = targetW * zoom;
+    const zoom = winW > winH ? 1.0 : 1.5; 
+    screenW = (winW > winH ? 700 : winW) * zoom;
     screenH = winH * zoom;
-
-    // Physical canvas matches window
     canvas.width = winW * window.devicePixelRatio;
     canvas.height = winH * window.devicePixelRatio;
     canvas.style.width = winW + "px";
     canvas.style.height = winH + "px";
-
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const scale = (winH * window.devicePixelRatio) / screenH;
-    const offsetX = (winW * window.devicePixelRatio - screenW * scale) / 2;
-    
-    ctx.translate(offsetX, 0);
+    ctx.translate((winW * window.devicePixelRatio - screenW * scale) / 2, 0);
     ctx.scale(scale, scale);
 }
 window.addEventListener("resize", resize); 
@@ -369,23 +650,22 @@ function updateThrottle(y) {
     const rect = sliderTrack.getBoundingClientRect();
     let val = 1 - (y - rect.top) / rect.height;
     val = Math.max(0, Math.min(1, val));
-    state.throttle = Math.round(val * 100);
-    throttleValEl.innerText = state.throttle;
-    sliderThumb.style.bottom = state.throttle + "%";
+    const target = Math.round(val * 100);
+    state.targetThrottle = target;
+    if (!state.modifiers.budgetPilot) {
+        state.throttle = target;
+        throttleValEl.innerText = state.throttle;
+        sliderThumb.style.bottom = state.throttle + "%";
+    }
 }
 
-const handleInput = (e) => {
-    const y = (e.touches ? e.touches[0].clientY : e.clientY);
-    updateThrottle(y);
-};
-
+const handleInput = (e) => { updateThrottle(e.touches ? e.touches[0].clientY : e.clientY); };
 sliderTrack.addEventListener("mousedown", (e) => {
     handleInput(e);
     const move = (me) => handleInput(me);
     const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
     window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
 });
-
 sliderTrack.addEventListener("touchstart", (e) => {
     e.preventDefault(); handleInput(e);
     const move = (te) => handleInput(te);
@@ -394,330 +674,352 @@ sliderTrack.addEventListener("touchstart", (e) => {
 }, {passive: false});
 
 document.getElementById("emergency-btn").onclick = () => {
-    state.emergencyLanding = true;
-    state.phase = PHASES.LANDING;
+    state.emergencyLanding = true; state.phase = PHASES.LANDING;
     phaseLabel.innerText = "EMERGENCY DESCENT";
     document.getElementById("emergency-btn").classList.add("hidden");
+    loseSatisfaction(30);
 };
 
+function loseSatisfaction(amount) {
+    let lossMult = 1 - (state.upgrades.comfort || 0) * 0.1;
+    if (state.modifiers.lockToilets) lossMult *= 1.20; // Toilets locked = 20% faster loss
+    if (state.modifiers.standingCabins) lossMult *= 1.50; // Standing Cabins = 50% faster loss
+    const reduced = amount * lossMult;
+    state.satisfaction = Math.max(0, state.satisfaction - reduced);
+}
+
 function initFlight(route) {
-    state.currentRoute = route;
-    state.phase = PHASES.TAKEOFF;
-    state.progress = 0;
-    // Apply fuel upgrade
-    state.fuel = 100 + (state.upgrades.fuel * 20); 
-    state.throttle = 0;
-    state.obstacles = []; state.clouds = []; state.houses = []; state.snacks = [];
+    state.currentRoute = route; state.phase = PHASES.TAKEOFF; state.progress = 0;
+    
+    // Priority Boarding / Oxygen Surcharge passenger satisfaction capacity calculation
+    let startSatisfaction = 100;
+    if (state.modifiers.priorityBoarding) startSatisfaction = 125;
+    if (state.modifiers.oxygenSurcharge) startSatisfaction -= 50;
+    state.satisfaction = startSatisfaction;
+    
+    state.fuel = 100 + (state.upgrades.fuel * 20); state.throttle = 0;
+    state.targetThrottle = 0;
+    state.obstacles = []; state.clouds = []; state.houses = []; state.snacks = []; state.turbulences = [];
     state.runways = [{ x: 0, w: 2500, type: 'start' }];
     state.player = { x: 40, y: screenH - 108, vy: 0, w: 80, h: 28 };
-    state.groundOffset = 0;
-    state.emergencyLanding = false;
-    state.lastObstacleX = 0;
-    state.lastHouseX = 0;
-    
-    throttleValEl.innerText = "0";
-    sliderThumb.style.bottom = "0%";
-    screens.route.classList.add("hidden");
-    distContainer.classList.remove("hidden");
+    state.groundOffset = 0; state.emergencyLanding = false; state.invincibleTime = 5000;
+    state.lastObstacleX = 0; state.lastHouseX = 0; state.scratchCardActive = false;
+    state.scratchCardTimer = 0; state.scratchCardProgress = 0;
+    throttleValEl.innerText = "0"; sliderThumb.style.bottom = "0%";
+    screens.route.classList.add("hidden"); distContainer.classList.remove("hidden");
     phaseLabel.innerText = "PREPARING FOR TAKE-OFF";
-    state.started = true;
-    state.gameOver = false;
-    state.lastTime = performance.now();
+    
+    // Night Flight background & stars initialization
+    const container = document.getElementById("game-container");
+    state.stars = [];
+    if (state.modifiers.nightFlight) {
+        container.style.background = "linear-gradient(to bottom, #020813, #0b1d3a, #1f3c6d)";
+        for (let i = 0; i < 60; i++) {
+            state.stars.push({
+                x: Math.random() * (screenW + 1000) - 500,
+                y: Math.random() * (screenH - 150),
+                size: Math.random() * 2 + 1,
+                phase: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.03
+            });
+        }
+    } else {
+        container.style.background = "linear-gradient(to bottom, #1a2a6c, #3a7bd5, #00d2ff)";
+    }
+    
+    // Render active modifiers badges
+    const activeModsDisplay = document.getElementById("active-modifiers-display");
+    activeModsDisplay.innerHTML = "";
+    Object.keys(MODIFIERS).forEach(id => {
+        if (state.modifiers[id]) {
+            const badge = document.createElement("div");
+            badge.className = "modifier-badge";
+            badge.innerHTML = `<span>${MODIFIERS[id].name}</span>`;
+            activeModsDisplay.appendChild(badge);
+        }
+    });
+
+    state.started = true; state.gameOver = false; state.lastTime = performance.now();
     requestAnimationFrame(loop);
 }
 
 function drawHouse(x, y, w, h) {
     ctx.fillStyle = "#a52a2a"; ctx.fillRect(x, y - h, w, h);
-    ctx.fillStyle = "#800000"; ctx.beginPath();
-    ctx.moveTo(x - 5, y - h); ctx.lineTo(x + w/2, y - h - 15); ctx.lineTo(x + w + 5, y - h); ctx.fill();
+    ctx.fillStyle = "#800000"; ctx.beginPath(); ctx.moveTo(x - 5, y - h); ctx.lineTo(x + w/2, y - h - 15); ctx.lineTo(x + w + 5, y - h); ctx.fill();
     ctx.fillStyle = "#ffeb3b"; ctx.fillRect(x + 5, y - h + 8, 8, 8); ctx.fillRect(x + w - 13, y - h + 8, 8, 8);
 }
-
 function drawRunway(x, y, w) {
     ctx.fillStyle = "#333"; ctx.fillRect(x, y - 5, w, 10);
-    ctx.strokeStyle = "white"; ctx.setLineDash([20, 15]); ctx.beginPath();
-    ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "white"; ctx.setLineDash([20, 15]); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke(); ctx.setLineDash([]);
 }
-
-function spawnCloud() {
-    state.clouds.push({ x: screenW + 200, y: Math.random() * (screenH - 300), w: 180 + Math.random()*100, h: 80 });
-}
+function spawnCloud() { state.clouds.push({ x: screenW + 200, y: Math.random() * (screenH - 300), w: 180 + Math.random()*100, h: 80 }); }
 function spawnHouse() {
-    if (state.emergencyLanding) return;
-    if (screenW - state.lastHouseX < 150) return;
+    if (state.emergencyLanding || screenW - state.lastHouseX < 150) return;
     state.houses.push({ x: screenW + 50, w: 40, h: 40 + Math.random() * 40 });
     state.lastHouseX = screenW + 50;
 }
 function spawnObstacle() {
     if (screenW - state.lastObstacleX < 300) return; 
-    
-    const rand = Math.random();
-    let type = 'bird';
-    if (rand < 0.15) type = 'turbine'; 
-    
-    let w = 80, h = 60, y = Math.random() * (screenH - 350);
-    let subtype = 'normal';
-
-    if (type === 'turbine') { 
-        h = screenH * 0.75; 
-        w = h * (2800/4000); 
-        y = screenH - 80 - h; 
-    } else {
-        if (Math.random() < 0.3) {
-            subtype = 'tall';
-            w = 80;
-            h = 240; 
-            y = Math.random() * (screenH - 450);
-        }
-    }
-    
-    // Spawn further off-screen (800px) to allow for warning
+    let type = Math.random() < 0.15 ? 'turbine' : 'bird';
+    let w = 80, h = 60, y = Math.random() * (screenH - 350), subtype = 'normal';
+    if (type === 'turbine') { h = screenH * 0.75; w = h * (2800/4000); y = screenH - 80 - h; }
+    else if (Math.random() < 0.3) { subtype = 'tall'; w = 80; h = 240; y = Math.random() * (screenH - 450); }
     state.obstacles.push({ x: screenW + 800, y, w, h, type, subtype });
     state.lastObstacleX = screenW + 800;
 }
 function spawnFuel() {
-    state.snacks.push({ x: screenW + 100, y: 100 + Math.random() * (screenH - 300), w: 60, h: 60 });
+    const rand = Math.random();
+    if (rand < 0.1) state.snacks.push({ x: screenW + 100, y: 100 + Math.random() * (screenH - 300), w: 50, h: 50, type: 'card' });
+    else state.snacks.push({ x: screenW + 100, y: 100 + Math.random() * (screenH - 300), w: 60, h: 60, type: 'fuel' });
+}
+function spawnTurbulence() {
+    state.turbulences.push({ x: screenW + 200, y: Math.random() * (screenH - 400), w: 300 + Math.random() * 300, h: 200 + Math.random() * 200, strength: 0.5 + Math.random() * 1.5 });
 }
 
 function update(dt) {
     if (!state.started || state.gameOver) return;
-    const f = Math.min(dt, 100) / 16.67;
-    const t = state.throttle / 100;
-    const groundY = screenH - 80;
-    const worldSpeed = 4.0;
+    const f = Math.min(dt, 100) / 16.67, t = state.throttle / 100, groundY = screenH - 80, worldSpeed = 4.0;
+    if (state.invincibleTime > 0) state.invincibleTime -= dt;
+    state.lastObstacleX -= worldSpeed * f; state.lastHouseX -= worldSpeed * f;
 
-    state.lastObstacleX -= worldSpeed * f;
-    state.lastHouseX -= worldSpeed * f;
+    // Budget Co-Pilot sluggish control throttle response
+    if (state.modifiers.budgetPilot) {
+        const diff = state.targetThrottle - state.throttle;
+        state.throttle += diff * 0.04 * f;
+        throttleValEl.innerText = Math.round(state.throttle);
+        sliderThumb.style.bottom = Math.round(state.throttle) + "%";
+    }
 
-    // Physics
+    // Oxygen Surcharge cash generation
+    if (state.modifiers.oxygenSurcharge && state.phase === PHASES.CRUISE) {
+        state.money += 0.05 * f; // Generates ~€3/sec
+    }
+
+    // PA Intercom Spam satisfaction penalty
+    if (state.modifiers.paSpam) {
+        loseSatisfaction(0.015 * f);
+    }
+
+    // Night stars drift animation
+    if (state.modifiers.nightFlight && state.stars) {
+        state.stars.forEach(star => {
+            star.x -= 0.6 * f;
+            if (star.x < -100) star.x = screenW + 500;
+        });
+    }
+
     if (state.phase === PHASES.TAKEOFF) {
         if (t > 0.70) {
-            const lift = (t - 0.6) * 0.4;
-            state.player.vy -= lift * f;
-            if (state.player.y < screenH - 180) {
-                state.phase = PHASES.CRUISE;
-                phaseLabel.innerText = "EN ROUTE";
-            }
+            state.player.vy -= (t - 0.6) * 0.4 * f;
+            if (state.player.y < screenH - 180) { state.phase = PHASES.CRUISE; phaseLabel.innerText = "EN ROUTE"; state.invincibleTime = 3000; }
         }
     } else {
-        const hasFuel = state.fuel > 0;
-        const thrust = hasFuel ? (t * 1.0) : 0;
-        
-        // Apply Glide Upgrade: reduces unpowered gravity penalty
-        const glidePenalty = Math.max(0.12, 0.15 - (state.upgrades.glide * 0.005));
-        const gravity = hasFuel ? 0.48 : glidePenalty; 
-        state.player.vy += (gravity - thrust) * f;
-
+        const hasFuel = state.fuel > 0, thrust = hasFuel ? (t * 1.0) : 0;
+        const gravity = hasFuel ? 0.48 : Math.max(0.12, 0.15 - (state.upgrades.glide * 0.005));
+        state.player.vy += (gravity - thrust + (state.phase === PHASES.CRUISE ? state.currentRoute.wind : 0)) * f;
         if (hasFuel) {
-            // Apply Efficiency Upgrade: reduces drain
-            const drainMult = 1 - (state.upgrades.efficiency * 0.1);
+            let drainMult = 1 - ((state.upgrades.efficiency || 0) * 0.1);
+            if (state.modifiers.lockToilets) drainMult *= 0.85; // 15% fuel drain reduction
             state.fuel -= (0.17 * t * drainMult) * f;
-            
             if (state.fuel < 100 + (state.upgrades.fuel * 20) && t < 0.2) state.fuel += 0.02 * f;
         }
         if (state.fuel < 0) state.fuel = 0;
     }
-
     state.player.y += state.player.vy * f;
-    state.player.vy *= Math.pow(0.97, f);
+    state.player.vy *= Math.pow(state.phase === PHASES.CRUISE ? 0.98 : 0.97, f);
+    if (Math.abs(state.player.vy) > 10) loseSatisfaction(0.1 * f);
 
-    // Emergency UI
-    if (state.fuel < 20 && !state.emergencyLanding && state.phase === PHASES.CRUISE) {
-        document.getElementById("emergency-btn").classList.remove("hidden");
-    } else if (state.emergencyLanding || state.fuel >= 20 || state.phase !== PHASES.CRUISE) {
-        document.getElementById("emergency-btn").classList.add("hidden");
-    }
+    if (state.fuel < 20 && !state.emergencyLanding && state.phase === PHASES.CRUISE) document.getElementById("emergency-btn").classList.remove("hidden");
+    else document.getElementById("emergency-btn").classList.add("hidden");
 
-    // Bounds & Collision
     if (state.player.y < 0) { state.player.y = 0; state.player.vy = 0; }
     if (state.player.y > groundY - state.player.h) {
         state.player.y = groundY - state.player.h;
         const onRunway = state.runways.some(r => state.player.x + (state.player.w * 0.5) > r.x && state.player.x < r.x + r.w);
-        const landingAngle = state.player.vy * 0.05;
-        const isSoft = Math.abs(landingAngle) < 0.12 && state.player.vy < 4;
-
+        const isSoft = Math.abs(state.player.vy * 0.05) < 0.12 && state.player.vy < 4;
         if (state.phase === PHASES.LANDING) {
             if (onRunway) {
                 if (isSoft) finishFlight(true);
-                else finishFlight(false, "your landing angle was too steep");
+                else if (state.player.vy < 7) { loseSatisfaction(40); state.money += 20; finishFlight(true, "Classic Ryanair hard landing! Bonus €20 'landing fee' collected."); }
+                else { loseSatisfaction(50); finishFlight(false, "your landing angle was too steep"); }
             } else if (state.emergencyLanding) {
                 if (isSoft) finishFlight(true, "miraculous emergency landing on grass!");
                 else finishFlight(false, "you crashed during the emergency landing");
-            } else {
-                 if (state.player.vy > 6 || Math.abs(landingAngle) > 0.15) finishFlight(false, "you hit the grass at a lethal angle");
-            }
-        } else if (state.phase !== PHASES.TAKEOFF) {
-            if (state.player.vy > 6 || Math.abs(landingAngle) > 0.15) finishFlight(false, "collision with ground at unsafe angle");
-        }
+            } else if (state.player.vy > 6) finishFlight(false, "you hit the grass at a lethal angle");
+        } else if (state.phase !== PHASES.TAKEOFF && state.player.vy > 6) finishFlight(false, "collision with ground at unsafe angle");
         state.player.vy = 0;
     }
 
-    // Phase/Progress Logic
     if (state.phase === PHASES.CRUISE || state.phase === PHASES.LANDING) {
-        const distStep = worldSpeed * f;
-        state.progress += distStep / state.currentRoute.dist;
-        
+        state.progress += (worldSpeed * f) / state.currentRoute.dist;
         if (state.progress >= 0.92 && state.phase === PHASES.CRUISE) {
-            state.phase = PHASES.LANDING;
-            phaseLabel.innerText = "APPROACHING RUNWAY";
+            state.phase = PHASES.LANDING; phaseLabel.innerText = "APPROACHING RUNWAY";
             state.runways.push({ x: screenW + 400, w: 3000, type: 'end' });
         }
         if (state.progress >= 1.0) state.progress = 1.0;
     }
 
-    // World Updates
+    state.turbulences.forEach((t, i) => {
+        t.x -= worldSpeed * f;
+        if (state.player.x < t.x + t.w && state.player.x + state.player.w > t.x && state.player.y < t.y + t.h && state.player.y + state.player.h > t.y) {
+            const strengthMult = state.modifiers.standingCabins ? 1.5 : 1.0; // Standing Cabins = 50% rougher turbulence
+            state.player.vy += (Math.random() - 0.5) * t.strength * strengthMult * f;
+            if (Math.abs(state.player.vy) > 8) loseSatisfaction(0.05 * f);
+        }
+        if (t.x < -1000) state.turbulences.splice(i, 1);
+    });
+
+    if (state.phase === PHASES.CRUISE) {
+        let triggerProb = 0.002;
+        if (state.modifiers.paSpam) triggerProb *= 2.0; // PA Spam triggers sales twice as fast
+        if (!state.scratchCardActive && Math.random() < triggerProb * f) { state.scratchCardActive = true; state.scratchCardTimer = 5000; state.scratchCardProgress = 0; }
+        if (state.scratchCardActive) {
+            state.scratchCardTimer -= dt;
+            if (Math.abs(state.player.vy) < 2.0) state.scratchCardProgress += dt;
+            if (state.scratchCardProgress >= 3000) { 
+                const gain = state.modifiers.dutyFree ? 100 : 50;
+                state.money += gain; 
+                state.scratchCardActive = false; 
+            }
+            else if (state.scratchCardTimer <= 0) state.scratchCardActive = false;
+        }
+    }
+
     state.groundOffset = (state.groundOffset + worldSpeed * f) % 100;
     if (Math.random() < 0.01 * f) spawnCloud();
     if (Math.random() < 0.02 * f) spawnHouse();
     if (state.phase === PHASES.CRUISE) {
         if (Math.random() < 0.016 * f) spawnObstacle(); 
-        if (Math.random() < 0.003 * f) spawnFuel();     
+        if (Math.random() < 0.007 * f) spawnFuel();     
+        if (Math.random() < 0.006 * f) spawnTurbulence();
     }
 
-    // Movement & Hitboxes
     state.clouds.forEach((c, i) => { c.x -= 2 * f; if(c.x < -400) state.clouds.splice(i,1); });
     state.houses.forEach((h, i) => { 
         h.x -= worldSpeed * f; 
-        if (state.phase === PHASES.CRUISE) {
-            const p = state.player;
-            if (p.x < h.x + h.w && p.x + p.w > h.x && p.y + p.h > groundY - h.h) {
-                finishFlight(false, "you collided with buildings");
-            }
-        }
+        if (state.phase === PHASES.CRUISE && state.invincibleTime <= 0 && state.player.x < h.x + h.w && state.player.x + state.player.w > h.x && state.player.y + state.player.h > groundY - h.h) finishFlight(false, "you collided with buildings");
         if(h.x < -100) state.houses.splice(i,1); 
     });
     state.snacks.forEach((s, i) => {
         s.x -= worldSpeed * f;
-        const p = state.player;
-        if (p.x < s.x + s.w && p.x + p.w > s.x && p.y < s.y + s.h && p.y + p.h > s.y) {
-            state.fuel = Math.min(100 + (state.upgrades.fuel * 20), state.fuel + 15);
+        if (state.player.x < s.x + s.w && state.player.x + state.player.w > s.x && state.player.y < s.y + s.h && state.player.y + state.player.h > s.y) {
+            if (s.type === 'card') { state.inventoryCards++; saveGamble(); }
+            else state.fuel = Math.min(100 + (state.upgrades.fuel * 20), state.fuel + 15);
             state.snacks.splice(i, 1);
         }
         if (s.x < -100) state.snacks.splice(i, 1);
     });
     state.runways.forEach((r, i) => { r.x -= worldSpeed * f; if(r.x + r.w < -100) state.runways.splice(i,1); });
     state.obstacles.forEach((o, i) => {
-        o.x -= worldSpeed * f;
-        const p = state.player;
-        
-        let collision = false;
-        if (o.type === 'bird') {
-            const insetW = 15;
-            const insetH = 20; 
-            if (p.x < o.x + o.w - insetW && p.x + p.w > o.x + insetW && 
-                p.y < o.y + o.h - insetH && p.y + p.h > o.y + insetH) {
-                collision = true;
-            }
-        } else {
-            if (p.x < o.x + o.w && p.x + p.w > o.x && p.y < o.y + o.h && p.y + p.h > o.y) {
-                collision = true;
-            }
-        }
-
-        if (collision) {
-            finishFlight(false, `you collided with ${o.type === 'bird' ? 'a bird swarm' : (o.type === 'turbine' ? 'a wind turbine' : 'an obstacle')}`);
-        }
+        o.x -= worldSpeed * f; let collision = false;
+        if (o.type === 'bird') { if (state.player.x < o.x + o.w - 15 && state.player.x + state.player.w > o.x + 15 && state.player.y < o.y + o.h - 20 && state.player.y + state.player.h > o.y + 20) collision = true; }
+        else if (state.player.x < o.x + o.w && state.player.x + state.player.w > o.x && state.player.y < o.y + o.h && state.player.y + state.player.h > o.y) collision = true;
+        if (collision && state.invincibleTime <= 0) { loseSatisfaction(20); finishFlight(false, `you collided with ${o.type === 'bird' ? 'a bird swarm' : (o.type === 'turbine' ? 'a wind turbine' : 'an obstacle')}`); }
         if(o.x < -800) state.obstacles.splice(i,1);
     });
-
-    // UI Update
-    progressBar.style.width = (state.progress * 100) + "%";
-    moneyEl.innerText = state.money;
-    fuelBar.style.width = (state.fuel / (100 + (state.upgrades.fuel * 20)) * 100) + "%";
+    progressBar.style.width = (state.progress * 100) + "%"; moneyEl.innerText = Math.floor(state.money);
+    satisfactionEl.innerText = Math.round(state.satisfaction); fuelBar.style.width = (state.fuel / (100 + (state.upgrades.fuel * 20)) * 100) + "%";
 }
 
 function draw() {
     ctx.clearRect(-1000, 0, screenW + 2000, screenH);
     const groundY = screenH - 80;
+    
+    // Draw night sky stars & moon
+    if (state.modifiers.nightFlight && state.stars) {
+        state.stars.forEach(star => {
+            star.phase += star.speed;
+            const alpha = 0.3 + Math.sin(star.phase) * 0.4;
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        
+        ctx.save();
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+        ctx.fillStyle = "rgba(254, 254, 233, 0.9)";
+        ctx.beginPath();
+        ctx.arc(screenW - 120, 100, 35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
 
     state.clouds.forEach(c => { ctx.globalAlpha = 0.2; ctx.drawImage(imgs.cloud, c.x, c.y, c.w, c.h); });
-    ctx.globalAlpha = 1.0;
-
-    // Ground
-    ctx.fillStyle = "#1e8449"; ctx.fillRect(-1000, groundY, screenW + 2000, 80);
+    ctx.globalAlpha = 1.0; ctx.fillStyle = "#1e8449"; ctx.fillRect(-1000, groundY, screenW + 2000, 80);
     state.houses.forEach(h => drawHouse(h.x, groundY, h.w, h.h));
     state.runways.forEach(r => drawRunway(r.x, groundY, r.w));
-
-    // Snacks (Fuel)
-    state.snacks.forEach(s => {
-        ctx.drawImage(imgs.fuel, s.x, s.y, s.w, s.h);
+    state.snacks.forEach(s => { 
+        if (s.type === 'card') { ctx.fillStyle = "gold"; ctx.fillRect(s.x, s.y, s.w, s.h); ctx.strokeStyle = "white"; ctx.strokeRect(s.x + 5, s.y + 5, s.w - 10, s.h - 10); ctx.fillStyle = "white"; ctx.font = "bold 20px Arial"; ctx.textAlign = "center"; ctx.fillText("?", s.x + s.w/2, s.y + s.h/2 + 7); }
+        else ctx.drawImage(imgs.fuel, s.x, s.y, s.w, s.h); 
     });
-
-    // Turbine Warning
-    let showWarning = false;
-    state.obstacles.forEach(o => {
-        if (o.type === 'turbine' && o.x > screenW && o.x < screenW + 400) showWarning = true;
-    });
-    if (showWarning) {
-        ctx.fillStyle = "red";
-        ctx.font = "bold 60px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("!", screenW - 40, screenH / 3);
-    }
-
-    // Fuel Empty Spam
-    if (state.fuel <= 0 && Date.now() % 400 < 200) {
-        ctx.fillStyle = "red";
-        ctx.font = "bold 80px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("!", screenW / 2, 80);
-    }
-
-    // Obstacles
-    state.obstacles.forEach(o => {
-        if (o.type === 'bird') {
-            const time = Date.now() * 0.005;
-            const count = o.subtype === 'tall' ? 8 : 5;
-            for (let i = 0; i < count; i++) {
-                const dx = (i * 17) % (o.w - 30);
-                const dy = (i * (o.h / count)) + Math.sin(time + i) * 12;
-                ctx.drawImage(imgs.bird, o.x + dx, o.y + dy, 40, 40);
-            }
-        } else if (o.type === 'turbine') {
-            ctx.drawImage(imgs.turbin, o.x, o.y, o.w, o.h);
-        } else {
-            ctx.fillStyle = "#e74c3c";
-            ctx.fillRect(o.x, o.y, o.w, o.h);
+    state.turbulences.forEach(t => {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; ctx.lineWidth = 2;
+        for (let j = 0; j < 5; j++) {
+            const rowY = t.y + (j * (t.h / 5)), time = Date.now() * 0.01;
+            ctx.beginPath(); ctx.moveTo(t.x, rowY + Math.sin(time + j) * 10); ctx.lineTo(t.x + t.w, rowY + Math.sin(time + j + 2) * 10); ctx.stroke();
         }
     });
-
-    // Plane
+    let showWarning = state.obstacles.some(o => o.type === 'turbine' && o.x > screenW && o.x < screenW + 400);
+    if (showWarning) { ctx.fillStyle = "red"; ctx.font = "bold 60px Arial"; ctx.textAlign = "center"; ctx.fillText("!", screenW - 40, screenH / 3); }
+    if (state.fuel <= 0 && Date.now() % 400 < 200) { ctx.fillStyle = "red"; ctx.font = "bold 80px Arial"; ctx.textAlign = "center"; ctx.fillText("!", screenW / 2, 80); }
+    if (state.scratchCardActive) {
+        const title = state.modifiers.dutyFree ? "DUTY FREE PROMO: FLY STEADY!" : "SCRATCH CARD SALES: FLY STEADY!";
+        ctx.fillStyle = "rgba(0, 51, 153, 0.7)"; ctx.fillRect(screenW / 2 - 150, 20, 300, 40); ctx.strokeStyle = "var(--primary-yellow)"; ctx.strokeRect(screenW / 2 - 150, 20, 300, 40);
+        ctx.fillStyle = "var(--primary-yellow)"; ctx.fillRect(screenW / 2 - 145, 25, 290 * (state.scratchCardProgress / 3000), 30);
+        ctx.fillStyle = "white"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center"; ctx.fillText(title, screenW / 2, 45);
+    }
+    state.obstacles.forEach(o => {
+        if (o.type === 'bird') {
+            const time = Date.now() * 0.005, count = o.subtype === 'tall' ? 8 : 5;
+            for (let i = 0; i < count; i++) ctx.drawImage(imgs.bird, o.x + (i * 17) % (o.w - 30), (o.y + (i * (o.h / count)) + Math.sin(time + i) * 12), 40, 40);
+        } else if (o.type === 'turbine') ctx.drawImage(imgs.turbin, o.x, o.y, o.w, o.h);
+        else { ctx.fillStyle = "#e74c3c"; ctx.fillRect(o.x, o.y, o.w, o.h); }
+    });
     const img = state.throttle > 65 ? imgs.up : (state.throttle < 35 ? imgs.down : imgs.mid);
-    ctx.save();
+    ctx.save(); if (state.invincibleTime > 0 && Date.now() % 200 < 100) ctx.globalAlpha = 0.5;
     ctx.translate(state.player.x + state.player.w/2, state.player.y + state.player.h/2);
     ctx.rotate(Math.max(-0.2, Math.min(0.2, state.player.vy * 0.05)));
-    ctx.scale(-1, 1); 
-    ctx.drawImage(img, -state.player.w/2, -state.player.h/2, state.player.w, state.player.h);
-    ctx.restore();
+    ctx.scale(-1, 1); ctx.drawImage(img, -state.player.w/2, -state.player.h/2, state.player.w, state.player.h); ctx.restore();
 }
 
 function finishFlight(success, customMsg) {
-    state.started = false;
-    state.gameOver = true;
-    const title = success ? "FLIGHT SUCCESSFUL" : "FLIGHT DISASTER";
-    const pay = success ? state.currentRoute.pay : 0;
-    if (success) { state.money += pay; localStorage.setItem('ryanair_money', state.money); }
+    state.started = false; state.gameOver = true;
     
-    document.getElementById("msg-title").innerText = title;
+    let basePay = success ? Math.floor(state.currentRoute.pay * (state.satisfaction / 100)) : 0;
+    let multiplier = 1.0;
+    let bonusBreakdown = [];
+    
+    if (success) {
+        if (state.modifiers.nightFlight) {
+            multiplier += 0.50;
+            bonusBreakdown.push("50% Night Ops");
+        }
+        if (state.modifiers.standingCabins) {
+            multiplier += 0.40;
+            bonusBreakdown.push("40% Standing Cabin");
+        }
+        if (state.modifiers.budgetPilot) {
+            multiplier += 0.25;
+            bonusBreakdown.push("25% Budget Co-Pilot");
+        }
+    }
+    
+    let pay = Math.floor(basePay * multiplier);
+    let bonusStr = bonusBreakdown.length > 0 ? ` (Includes bonuses: ${bonusBreakdown.join(", ")})` : "";
+    
+    if (success) { state.money = Math.floor(state.money + pay); saveGamble(); }
+    document.getElementById("msg-title").innerText = success ? "FLIGHT SUCCESSFUL" : "FLIGHT DISASTER";
     document.getElementById("msg-desc").innerText = success 
-        ? (customMsg || `Safe landing! You earned €${pay}. Ryanair is slightly less bankrupt.`)
-        : `Disaster! ${customMsg || "You crashed"}. Ryanair is suing you for damages.`;
+        ? (customMsg || `Safe landing! You earned €${pay}${bonusStr} (${Math.round(state.satisfaction)}% passenger satisfaction).`) 
+        : `Disaster! ${customMsg || "You crashed"}. Ryanair is suing you.`;
     screens.msg.classList.remove("hidden");
     document.getElementById("msg-btn").onclick = () => location.reload();
 }
 
-function loop(ts) {
-    if (!state.started || state.gameOver) return;
-    update(ts - state.lastTime);
-    state.lastTime = ts;
-    draw();
-    requestAnimationFrame(loop);
-}
-
-window.onload = () => { 
-    resize(); 
-    document.getElementById("menu-money").innerText = state.money;
-};
+function loop(ts) { if (!state.started || state.gameOver) return; update(ts - state.lastTime); state.lastTime = ts; draw(); requestAnimationFrame(loop); }
+window.onload = () => { resize(); document.getElementById("menu-money").innerText = state.money; };
 </script>
 </body>
 </html>
