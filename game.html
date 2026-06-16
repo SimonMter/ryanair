@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0"/>
+<title>Ryanair Simulator Pro - Pro Edition</title>
+<style>
+    :root {
+        --primary-blue: #003399;
+        --primary-yellow: #f1c40f;
+        --ui-bg: rgba(0, 51, 153, 0.9);
+    }
+
+    html, body {
+        margin: 0; padding: 0; overflow: hidden;
+        background: #051937; touch-action: none;
+        font-family: 'Segoe UI', Roboto, sans-serif;
+        width: 100%; height: 100%; color: white;
+    }
+
+    #game-container {
+        position: relative; width: 100vw; height: 100vh;
+        margin: 0 auto; overflow: hidden;
+        background: linear-gradient(to bottom, #1a2a6c, #3a7bd5, #00d2ff);
+        display: flex; justify-content: center; align-items: center;
+    }
+
+    canvas { display: block; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+
+    #ui-layer {
+        position: absolute; top: 0; left: 0;
+        width: 100%; height: 100%; pointer-events: none; z-index: 5;
+    }
+
+    .stats-panel {
+        position: absolute; top: 120px; left: 20px;
+        background: var(--ui-bg); padding: 12px 20px;
+        border-radius: 15px; border: 2px solid var(--primary-yellow);
+        pointer-events: auto; min-width: 150px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .money-display { color: #2ecc71; font-size: 1.4rem; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black; }
+
+    .fuel-bar-container {
+        width: 100%; height: 10px; background: rgba(255,255,255,0.2);
+        border-radius: 5px; margin-top: 8px; overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    #fuel-bar { height: 100%; background: linear-gradient(90deg, #f1c40f, #f39c12); width: 100%; transition: width 0.1s; }
+
+    #throttle-control {
+        position: absolute; right: 20px; top: 50%;
+        transform: translateY(-50%); height: 300px; width: 80px;
+        background: var(--ui-bg); border: 2px solid var(--primary-yellow);
+        border-radius: 20px; display: flex; flex-direction: column;
+        align-items: center; justify-content: space-between;
+        padding: 20px 0; pointer-events: auto; user-select: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    #slider-track {
+        width: 16px; height: 200px; background: rgba(255,255,255,0.1);
+        border-radius: 8px; position: relative; cursor: ns-resize;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    #slider-thumb {
+        width: 44px; height: 44px; background: #fff;
+        border: 4px solid var(--primary-yellow); border-radius: 12px;
+        position: absolute; left: 50%; transform: translate(-50%, 50%);
+        bottom: 0%; pointer-events: none;
+        box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+
+    .screen {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(135deg, #051937, #004d7a, #008793, #00bf72, #a8eb12);
+        display: flex; flex-direction: column;
+        justify-content: center; align-items: center; z-index: 100; text-align: center;
+        padding: 20px; box-sizing: border-box;
+    }
+
+    #start-screen h1 { font-size: 3.5rem; margin-bottom: 0; text-shadow: 3px 3px 0 var(--primary-blue); color: var(--primary-yellow); }
+
+    .menu-container {
+        background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
+        padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);
+        display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 500px;
+        max-height: 80vh; overflow-y: auto;
+    }
+
+    .route-card {
+        background: white; color: var(--primary-blue);
+        border-radius: 12px; padding: 20px; width: 100%; box-sizing: border-box;
+        cursor: pointer; transition: all 0.2s; pointer-events: auto;
+        display: flex; justify-content: space-between; align-items: center;
+        text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .route-card:hover { transform: translateX(10px); background: var(--primary-yellow); }
+    .route-card h3 { margin: 0; font-size: 1.2rem; }
+    .route-card p { margin: 5px 0 0; opacity: 0.7; font-size: 0.9rem; }
+    .route-payout { font-size: 1.3rem; font-weight: bold; color: #2ecc71; }
+
+    .shop-item {
+        background: rgba(0,0,0,0.3); border: 1px solid var(--primary-yellow);
+        border-radius: 10px; padding: 15px; display: flex; justify-content: space-between;
+        align-items: center; text-align: left; margin-bottom: 10px;
+    }
+    .shop-item-info h4 { margin: 0; color: var(--primary-yellow); }
+    .shop-item-info p { margin: 5px 0 0; font-size: 0.8rem; opacity: 0.8; }
+
+    .btn {
+        background: var(--primary-yellow); color: var(--primary-blue);
+        border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold;
+        border-radius: 12px; cursor: pointer; transition: all 0.2s;
+        box-shadow: 0 4px 0 #b7950b; text-transform: uppercase; pointer-events: auto;
+    }
+    .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b7950b; }
+    .btn-secondary { background: #fff; color: var(--primary-blue); box-shadow: 0 4px 0 #ccc; }
+
+    .progress-container {
+        position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+        width: 250px; height: 25px; background: rgba(0,0,0,0.5);
+        border-radius: 12px; overflow: hidden; border: 2px solid var(--primary-yellow);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    #progress-bar { height: 100%; background: var(--primary-yellow); width: 0%; }
+
+    .hidden { display: none !important; }
+
+    #emergency-btn {
+        position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+        z-index: 20; background: #e74c3c; color: white; border: 3px solid var(--primary-yellow);
+        box-shadow: 0 4px 0 #c0392b; font-size: 1.1rem; padding: 10px 20px;
+    }
+
+    @media (max-width: 600px) {
+        #throttle-control { right: 10px; height: 200px; width: 60px; }
+        #slider-track { height: 120px; }
+        .stats-panel { left: 10px; padding: 10px; min-width: 120px; }
+        #emergency-btn { bottom: 40px; font-size: 0.9rem; }
+    }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="game"></canvas>
+    
+    <div id="ui-layer">
+        <div class="stats-panel">
+            <div class="money-display">€<span id="money">0</span></div>
+            <div style="font-size: 0.8rem; opacity: 0.8;">FUEL CAPACITY</div>
+            <div class="fuel-bar-container"><div id="fuel-bar"></div></div>
+        </div>
+
+        <div class="progress-container hidden" id="dist-container">
+            <div id="progress-bar"></div>
+            <div id="phase-label" style="position: absolute; top:0; width: 100%; text-align: center; font-size: 0.75rem; font-weight: bold; color: #003399; line-height: 25px;">PREPARING FOR TAKE-OFF</div>
+        </div>
+
+        <button id="emergency-btn" class="btn hidden">EMERGENCY LANDING</button>
+        
+        <div id="throttle-control">
+            <div style="font-size: 0.7rem; color: var(--primary-yellow); font-weight: bold;">THRUST</div>
+            <div id="slider-track"><div id="slider-thumb"></div></div>
+            <div style="font-weight: bold; color: var(--primary-yellow); font-size: 1.2rem;"><span id="throttle-val">0</span>%</div>
+        </div>
+    </div>
+
+    <!-- Screens -->
+    <div id="start-screen" class="screen">
+        <h1>RYANAIR CAREER</h1>
+        <p style="margin-top: 0; opacity: 0.9;">Fly cheap. Land hard. Collect fees.</p>
+        
+        <div class="menu-container">
+            <button id="to-routes-btn" class="btn">START NEW FLIGHT</button>
+            <button id="to-shop-btn" class="btn btn-secondary">HANGAR & UPGRADES</button>
+            <div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">Total Balance: €<span id="menu-money">0</span></div>
+        </div>
+    </div>
+
+    <div id="route-screen" class="screen hidden">
+        <h2>SELECT YOUR DESTINATION</h2>
+        <div id="route-list" class="menu-container"></div>
+        <button id="back-from-routes" class="btn btn-secondary" style="margin-top: 20px;">BACK TO MENU</button>
+    </div>
+
+    <div id="shop-screen" class="screen hidden">
+        <h2>FLEET UPGRADES</h2>
+        <div class="menu-container">
+            <div id="shop-list"></div>
+        </div>
+        <button id="back-from-shop" class="btn btn-secondary" style="margin-top: 20px;">BACK TO MENU</button>
+    </div>
+
+    <div id="msg-overlay" class="screen hidden">
+        <h2 id="msg-title">MESSAGE</h2>
+        <p id="msg-desc" style="font-size: 1.1rem; max-width: 350px;"></p>
+        <button id="msg-btn" class="btn">CONTINUE</button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const moneyEl = document.getElementById("money");
+const fuelBar = document.getElementById("fuel-bar");
+const throttleValEl = document.getElementById("throttle-val");
+const sliderTrack = document.getElementById("slider-track");
+const sliderThumb = document.getElementById("slider-thumb");
+const progressBar = document.getElementById("progress-bar");
+const distContainer = document.getElementById("dist-container");
+const phaseLabel = document.getElementById("phase-label");
+
+const screens = {
+    start: document.getElementById("start-screen"),
+    route: document.getElementById("route-screen"),
+    shop: document.getElementById("shop-screen"),
+    msg: document.getElementById("msg-overlay")
+};
+
+const UPGRADES = {
+    fuel: { name: "Extended Fuel Tank", desc: "Adds 20% more fuel capacity", price: 150, level: 0, max: 5 },
+    efficiency: { name: "Engine Efficiency", desc: "Reduces fuel drain by 10%", price: 200, level: 0, max: 5 },
+    glide: { name: "Lightweight Parts", desc: "Improves gliding when unpowered", price: 250, level: 0, max: 5 }
+};
+
+const PHASES = { TAKEOFF: 'takeoff', CRUISE: 'cruise', LANDING: 'landing' };
+
+// Logical Route Generation
+const CITIES = ["Dublin", "London", "Paris", "Berlin", "Rome", "Madrid", "Lisbon", "Vienna", "Warsaw", "Brussels"];
+function generateRoutes() {
+    const routes = [];
+    const count = 4;
+    const shuffled = [...CITIES].sort(() => 0.5 - Math.random());
+    for (let i = 0; i < count; i++) {
+        const from = shuffled[i];
+        const to = shuffled[(i + 1) % shuffled.length];
+        const distance = Math.floor(3000 + Math.random() * 9000);
+        const payout = Math.floor(distance / 40 + 50); 
+        routes.push({ name: `${from} → ${to}`, dist: distance, pay: payout });
+    }
+    return routes;
+}
+
+let state = {
+    money: parseInt(localStorage.getItem('ryanair_money')) || 0,
+    upgrades: JSON.parse(localStorage.getItem('ryanair_upgrades')) || { fuel: 0, efficiency: 0, glide: 0 },
+    currentRoute: null,
+    phase: null,
+    progress: 0,
+    fuel: 100,
+    throttle: 0,
+    player: { x: 40, y: 0, vy: 0, w: 80, h: 28 },
+    obstacles: [], snacks: [], clouds: [], houses: [],
+    runways: [],
+    groundOffset: 0, lastTime: 0, started: false, gameOver: false,
+    emergencyLanding: false,
+    lastObstacleX: 0,
+    lastHouseX: 0
+};
+
+// Update shop UI
+function updateShop() {
+    const list = document.getElementById("shop-list");
+    list.innerHTML = "";
+    Object.keys(UPGRADES).forEach(id => {
+        const up = UPGRADES[id];
+        const level = state.upgrades[id];
+        const item = document.createElement("div");
+        item.className = "shop-item";
+        item.innerHTML = `
+            <div class="shop-item-info">
+                <h4>${up.name} (Lv ${level}/${up.max})</h4>
+                <p>${up.desc}</p>
+            </div>
+            <button class="btn" ${level >= up.max || state.money < up.price ? 'disabled' : ''} onclick="buyUpgrade('${id}')">
+                ${level >= up.max ? 'MAX' : '€' + up.price}
+            </button>
+        `;
+        list.appendChild(item);
+    });
+    document.getElementById("menu-money").innerText = state.money;
+}
+
+window.buyUpgrade = (id) => {
+    const up = UPGRADES[id];
+    if (state.money >= up.price && state.upgrades[id] < up.max) {
+        state.money -= up.price;
+        state.upgrades[id]++;
+        localStorage.setItem('ryanair_money', state.money);
+        localStorage.setItem('ryanair_upgrades', JSON.stringify(state.upgrades));
+        updateShop();
+    }
+};
+
+document.getElementById("to-shop-btn").onclick = () => {
+    screens.start.classList.add("hidden");
+    screens.shop.classList.remove("hidden");
+    updateShop();
+};
+
+document.getElementById("back-from-shop").onclick = () => {
+    screens.shop.classList.add("hidden");
+    screens.start.classList.remove("hidden");
+    document.getElementById("menu-money").innerText = state.money;
+};
+
+document.getElementById("to-routes-btn").onclick = () => {
+    screens.start.classList.add("hidden");
+    screens.route.classList.remove("hidden");
+    const list = document.getElementById("route-list");
+    list.innerHTML = "";
+    generateRoutes().forEach(r => {
+        const card = document.createElement("div");
+        card.className = "route-card";
+        card.innerHTML = `
+            <div>
+                <h3>${r.name}</h3>
+                <p>${Math.floor(r.dist / 100)}km | Expected Profit</p>
+            </div>
+            <div class="route-payout">€${r.pay}</div>
+        `;
+        card.onclick = () => initFlight(r);
+        list.appendChild(card);
+    });
+};
+
+document.getElementById("back-from-routes").onclick = () => {
+    screens.route.classList.add("hidden");
+    screens.start.classList.remove("hidden");
+};
+
+const imgs = { mid: new Image(), up: new Image(), down: new Image(), cloud: new Image(), fuel: new Image(), bird: new Image(), turbin: new Image() };
+imgs.mid.src = "ryanair.png"; imgs.up.src = "ryanair_up.png"; imgs.down.src = "ryanair_down.png"; imgs.cloud.src = "clouds.png";
+imgs.fuel.src = "fuel.png"; imgs.bird.src = "bird.png"; imgs.turbin.src = "turbin.png";
+
+let screenW, screenH;
+function resize() {
+    const winW = window.innerWidth; const winH = window.innerHeight;
+    const isPC = winW > winH;
+    const zoom = isPC ? 1.0 : 1.5; 
+    
+    // Logical dimensions: what the game "thinks" the size is
+    const targetW = isPC ? 700 : winW;
+    screenW = targetW * zoom;
+    screenH = winH * zoom;
+
+    // Physical canvas matches window
+    canvas.width = winW * window.devicePixelRatio;
+    canvas.height = winH * window.devicePixelRatio;
+    canvas.style.width = winW + "px";
+    canvas.style.height = winH + "px";
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const scale = (winH * window.devicePixelRatio) / screenH;
+    const offsetX = (winW * window.devicePixelRatio - screenW * scale) / 2;
+    
+    ctx.translate(offsetX, 0);
+    ctx.scale(scale, scale);
+}
+window.addEventListener("resize", resize); 
+resize();
+
+function updateThrottle(y) {
+    const rect = sliderTrack.getBoundingClientRect();
+    let val = 1 - (y - rect.top) / rect.height;
+    val = Math.max(0, Math.min(1, val));
+    state.throttle = Math.round(val * 100);
+    throttleValEl.innerText = state.throttle;
+    sliderThumb.style.bottom = state.throttle + "%";
+}
+
+const handleInput = (e) => {
+    const y = (e.touches ? e.touches[0].clientY : e.clientY);
+    updateThrottle(y);
+};
+
+sliderTrack.addEventListener("mousedown", (e) => {
+    handleInput(e);
+    const move = (me) => handleInput(me);
+    const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+    window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+});
+
+sliderTrack.addEventListener("touchstart", (e) => {
+    e.preventDefault(); handleInput(e);
+    const move = (te) => handleInput(te);
+    const end = () => { window.removeEventListener("touchmove", move); window.removeEventListener("touchend", end); };
+    window.addEventListener("touchmove", move, {passive: false}); window.addEventListener("touchend", end);
+}, {passive: false});
+
+document.getElementById("emergency-btn").onclick = () => {
+    state.emergencyLanding = true;
+    state.phase = PHASES.LANDING;
+    phaseLabel.innerText = "EMERGENCY DESCENT";
+    document.getElementById("emergency-btn").classList.add("hidden");
+};
+
+function initFlight(route) {
+    state.currentRoute = route;
+    state.phase = PHASES.TAKEOFF;
+    state.progress = 0;
+    // Apply fuel upgrade
+    state.fuel = 100 + (state.upgrades.fuel * 20); 
+    state.throttle = 0;
+    state.obstacles = []; state.clouds = []; state.houses = []; state.snacks = [];
+    state.runways = [{ x: 0, w: 2500, type: 'start' }];
+    state.player = { x: 40, y: screenH - 108, vy: 0, w: 80, h: 28 };
+    state.groundOffset = 0;
+    state.emergencyLanding = false;
+    state.lastObstacleX = 0;
+    state.lastHouseX = 0;
+    
+    throttleValEl.innerText = "0";
+    sliderThumb.style.bottom = "0%";
+    screens.route.classList.add("hidden");
+    distContainer.classList.remove("hidden");
+    phaseLabel.innerText = "PREPARING FOR TAKE-OFF";
+    state.started = true;
+    state.gameOver = false;
+    state.lastTime = performance.now();
+    requestAnimationFrame(loop);
+}
+
+function drawHouse(x, y, w, h) {
+    ctx.fillStyle = "#a52a2a"; ctx.fillRect(x, y - h, w, h);
+    ctx.fillStyle = "#800000"; ctx.beginPath();
+    ctx.moveTo(x - 5, y - h); ctx.lineTo(x + w/2, y - h - 15); ctx.lineTo(x + w + 5, y - h); ctx.fill();
+    ctx.fillStyle = "#ffeb3b"; ctx.fillRect(x + 5, y - h + 8, 8, 8); ctx.fillRect(x + w - 13, y - h + 8, 8, 8);
+}
+
+function drawRunway(x, y, w) {
+    ctx.fillStyle = "#333"; ctx.fillRect(x, y - 5, w, 10);
+    ctx.strokeStyle = "white"; ctx.setLineDash([20, 15]); ctx.beginPath();
+    ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function spawnCloud() {
+    state.clouds.push({ x: screenW + 200, y: Math.random() * (screenH - 300), w: 180 + Math.random()*100, h: 80 });
+}
+function spawnHouse() {
+    if (state.emergencyLanding) return;
+    if (screenW - state.lastHouseX < 150) return;
+    state.houses.push({ x: screenW + 50, w: 40, h: 40 + Math.random() * 40 });
+    state.lastHouseX = screenW + 50;
+}
+function spawnObstacle() {
+    if (screenW - state.lastObstacleX < 300) return; 
+    
+    const rand = Math.random();
+    let type = 'bird';
+    if (rand < 0.15) type = 'turbine'; 
+    
+    let w = 80, h = 60, y = Math.random() * (screenH - 350);
+    let subtype = 'normal';
+
+    if (type === 'turbine') { 
+        h = screenH * 0.75; 
+        w = h * (2800/4000); 
+        y = screenH - 80 - h; 
+    } else {
+        if (Math.random() < 0.3) {
+            subtype = 'tall';
+            w = 80;
+            h = 240; 
+            y = Math.random() * (screenH - 450);
+        }
+    }
+    
+    // Spawn further off-screen (800px) to allow for warning
+    state.obstacles.push({ x: screenW + 800, y, w, h, type, subtype });
+    state.lastObstacleX = screenW + 800;
+}
+function spawnFuel() {
+    state.snacks.push({ x: screenW + 100, y: 100 + Math.random() * (screenH - 300), w: 60, h: 60 });
+}
+
+function update(dt) {
+    if (!state.started || state.gameOver) return;
+    const f = Math.min(dt, 100) / 16.67;
+    const t = state.throttle / 100;
+    const groundY = screenH - 80;
+    const worldSpeed = 4.0;
+
+    state.lastObstacleX -= worldSpeed * f;
+    state.lastHouseX -= worldSpeed * f;
+
+    // Physics
+    if (state.phase === PHASES.TAKEOFF) {
+        if (t > 0.70) {
+            const lift = (t - 0.6) * 0.4;
+            state.player.vy -= lift * f;
+            if (state.player.y < screenH - 180) {
+                state.phase = PHASES.CRUISE;
+                phaseLabel.innerText = "EN ROUTE";
+            }
+        }
+    } else {
+        const hasFuel = state.fuel > 0;
+        const thrust = hasFuel ? (t * 1.0) : 0;
+        
+        // Apply Glide Upgrade: reduces unpowered gravity penalty
+        const glidePenalty = Math.max(0.12, 0.15 - (state.upgrades.glide * 0.005));
+        const gravity = hasFuel ? 0.48 : glidePenalty; 
+        state.player.vy += (gravity - thrust) * f;
+
+        if (hasFuel) {
+            // Apply Efficiency Upgrade: reduces drain
+            const drainMult = 1 - (state.upgrades.efficiency * 0.1);
+            state.fuel -= (0.17 * t * drainMult) * f;
+            
+            if (state.fuel < 100 + (state.upgrades.fuel * 20) && t < 0.2) state.fuel += 0.02 * f;
+        }
+        if (state.fuel < 0) state.fuel = 0;
+    }
+
+    state.player.y += state.player.vy * f;
+    state.player.vy *= Math.pow(0.97, f);
+
+    // Emergency UI
+    if (state.fuel < 20 && !state.emergencyLanding && state.phase === PHASES.CRUISE) {
+        document.getElementById("emergency-btn").classList.remove("hidden");
+    } else if (state.emergencyLanding || state.fuel >= 20 || state.phase !== PHASES.CRUISE) {
+        document.getElementById("emergency-btn").classList.add("hidden");
+    }
+
+    // Bounds & Collision
+    if (state.player.y < 0) { state.player.y = 0; state.player.vy = 0; }
+    if (state.player.y > groundY - state.player.h) {
+        state.player.y = groundY - state.player.h;
+        const onRunway = state.runways.some(r => state.player.x + (state.player.w * 0.5) > r.x && state.player.x < r.x + r.w);
+        const landingAngle = state.player.vy * 0.05;
+        const isSoft = Math.abs(landingAngle) < 0.12 && state.player.vy < 4;
+
+        if (state.phase === PHASES.LANDING) {
+            if (onRunway) {
+                if (isSoft) finishFlight(true);
+                else finishFlight(false, "your landing angle was too steep");
+            } else if (state.emergencyLanding) {
+                if (isSoft) finishFlight(true, "miraculous emergency landing on grass!");
+                else finishFlight(false, "you crashed during the emergency landing");
+            } else {
+                 if (state.player.vy > 6 || Math.abs(landingAngle) > 0.15) finishFlight(false, "you hit the grass at a lethal angle");
+            }
+        } else if (state.phase !== PHASES.TAKEOFF) {
+            if (state.player.vy > 6 || Math.abs(landingAngle) > 0.15) finishFlight(false, "collision with ground at unsafe angle");
+        }
+        state.player.vy = 0;
+    }
+
+    // Phase/Progress Logic
+    if (state.phase === PHASES.CRUISE || state.phase === PHASES.LANDING) {
+        const distStep = worldSpeed * f;
+        state.progress += distStep / state.currentRoute.dist;
+        
+        if (state.progress >= 0.92 && state.phase === PHASES.CRUISE) {
+            state.phase = PHASES.LANDING;
+            phaseLabel.innerText = "APPROACHING RUNWAY";
+            state.runways.push({ x: screenW + 400, w: 3000, type: 'end' });
+        }
+        if (state.progress >= 1.0) state.progress = 1.0;
+    }
+
+    // World Updates
+    state.groundOffset = (state.groundOffset + worldSpeed * f) % 100;
+    if (Math.random() < 0.01 * f) spawnCloud();
+    if (Math.random() < 0.02 * f) spawnHouse();
+    if (state.phase === PHASES.CRUISE) {
+        if (Math.random() < 0.016 * f) spawnObstacle(); 
+        if (Math.random() < 0.003 * f) spawnFuel();     
+    }
+
+    // Movement & Hitboxes
+    state.clouds.forEach((c, i) => { c.x -= 2 * f; if(c.x < -400) state.clouds.splice(i,1); });
+    state.houses.forEach((h, i) => { 
+        h.x -= worldSpeed * f; 
+        if (state.phase === PHASES.CRUISE) {
+            const p = state.player;
+            if (p.x < h.x + h.w && p.x + p.w > h.x && p.y + p.h > groundY - h.h) {
+                finishFlight(false, "you collided with buildings");
+            }
+        }
+        if(h.x < -100) state.houses.splice(i,1); 
+    });
+    state.snacks.forEach((s, i) => {
+        s.x -= worldSpeed * f;
+        const p = state.player;
+        if (p.x < s.x + s.w && p.x + p.w > s.x && p.y < s.y + s.h && p.y + p.h > s.y) {
+            state.fuel = Math.min(100 + (state.upgrades.fuel * 20), state.fuel + 15);
+            state.snacks.splice(i, 1);
+        }
+        if (s.x < -100) state.snacks.splice(i, 1);
+    });
+    state.runways.forEach((r, i) => { r.x -= worldSpeed * f; if(r.x + r.w < -100) state.runways.splice(i,1); });
+    state.obstacles.forEach((o, i) => {
+        o.x -= worldSpeed * f;
+        const p = state.player;
+        
+        let collision = false;
+        if (o.type === 'bird') {
+            const insetW = 15;
+            const insetH = 20; 
+            if (p.x < o.x + o.w - insetW && p.x + p.w > o.x + insetW && 
+                p.y < o.y + o.h - insetH && p.y + p.h > o.y + insetH) {
+                collision = true;
+            }
+        } else {
+            if (p.x < o.x + o.w && p.x + p.w > o.x && p.y < o.y + o.h && p.y + p.h > o.y) {
+                collision = true;
+            }
+        }
+
+        if (collision) {
+            finishFlight(false, `you collided with ${o.type === 'bird' ? 'a bird swarm' : (o.type === 'turbine' ? 'a wind turbine' : 'an obstacle')}`);
+        }
+        if(o.x < -800) state.obstacles.splice(i,1);
+    });
+
+    // UI Update
+    progressBar.style.width = (state.progress * 100) + "%";
+    moneyEl.innerText = state.money;
+    fuelBar.style.width = (state.fuel / (100 + (state.upgrades.fuel * 20)) * 100) + "%";
+}
+
+function draw() {
+    ctx.clearRect(-1000, 0, screenW + 2000, screenH);
+    const groundY = screenH - 80;
+
+    state.clouds.forEach(c => { ctx.globalAlpha = 0.2; ctx.drawImage(imgs.cloud, c.x, c.y, c.w, c.h); });
+    ctx.globalAlpha = 1.0;
+
+    // Ground
+    ctx.fillStyle = "#1e8449"; ctx.fillRect(-1000, groundY, screenW + 2000, 80);
+    state.houses.forEach(h => drawHouse(h.x, groundY, h.w, h.h));
+    state.runways.forEach(r => drawRunway(r.x, groundY, r.w));
+
+    // Snacks (Fuel)
+    state.snacks.forEach(s => {
+        ctx.drawImage(imgs.fuel, s.x, s.y, s.w, s.h);
+    });
+
+    // Turbine Warning
+    let showWarning = false;
+    state.obstacles.forEach(o => {
+        if (o.type === 'turbine' && o.x > screenW && o.x < screenW + 400) showWarning = true;
+    });
+    if (showWarning) {
+        ctx.fillStyle = "red";
+        ctx.font = "bold 60px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("!", screenW - 40, screenH / 3);
+    }
+
+    // Fuel Empty Spam
+    if (state.fuel <= 0 && Date.now() % 400 < 200) {
+        ctx.fillStyle = "red";
+        ctx.font = "bold 80px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("!", screenW / 2, 80);
+    }
+
+    // Obstacles
+    state.obstacles.forEach(o => {
+        if (o.type === 'bird') {
+            const time = Date.now() * 0.005;
+            const count = o.subtype === 'tall' ? 8 : 5;
+            for (let i = 0; i < count; i++) {
+                const dx = (i * 17) % (o.w - 30);
+                const dy = (i * (o.h / count)) + Math.sin(time + i) * 12;
+                ctx.drawImage(imgs.bird, o.x + dx, o.y + dy, 40, 40);
+            }
+        } else if (o.type === 'turbine') {
+            ctx.drawImage(imgs.turbin, o.x, o.y, o.w, o.h);
+        } else {
+            ctx.fillStyle = "#e74c3c";
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+        }
+    });
+
+    // Plane
+    const img = state.throttle > 65 ? imgs.up : (state.throttle < 35 ? imgs.down : imgs.mid);
+    ctx.save();
+    ctx.translate(state.player.x + state.player.w/2, state.player.y + state.player.h/2);
+    ctx.rotate(Math.max(-0.2, Math.min(0.2, state.player.vy * 0.05)));
+    ctx.scale(-1, 1); 
+    ctx.drawImage(img, -state.player.w/2, -state.player.h/2, state.player.w, state.player.h);
+    ctx.restore();
+}
+
+function finishFlight(success, customMsg) {
+    state.started = false;
+    state.gameOver = true;
+    const title = success ? "FLIGHT SUCCESSFUL" : "FLIGHT DISASTER";
+    const pay = success ? state.currentRoute.pay : 0;
+    if (success) { state.money += pay; localStorage.setItem('ryanair_money', state.money); }
+    
+    document.getElementById("msg-title").innerText = title;
+    document.getElementById("msg-desc").innerText = success 
+        ? (customMsg || `Safe landing! You earned €${pay}. Ryanair is slightly less bankrupt.`)
+        : `Disaster! ${customMsg || "You crashed"}. Ryanair is suing you for damages.`;
+    screens.msg.classList.remove("hidden");
+    document.getElementById("msg-btn").onclick = () => location.reload();
+}
+
+function loop(ts) {
+    if (!state.started || state.gameOver) return;
+    update(ts - state.lastTime);
+    state.lastTime = ts;
+    draw();
+    requestAnimationFrame(loop);
+}
+
+window.onload = () => { 
+    resize(); 
+    document.getElementById("menu-money").innerText = state.money;
+};
+</script>
+</body>
+</html>
