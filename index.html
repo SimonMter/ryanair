@@ -33,14 +33,15 @@
     }
 
     .stats-panel {
-        position: absolute; top: 120px; left: 20px;
+        position: absolute; bottom: 20px; left: 20px;
         background: var(--ui-bg); padding: 12px 20px;
         border-radius: 15px; border: 2px solid var(--primary-yellow);
         pointer-events: auto; min-width: 150px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
 
-    .money-display { color: #2ecc71; font-size: 1.4rem; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black; }
+    .money-display { color: #2ecc71; font-size: 1.4rem; font-weight: bold; margin-bottom: 2px; text-shadow: 1px 1px 2px black; }
+    .satisfaction-display { font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; color: #3498db; }
 
     .fuel-bar-container {
         width: 100%; height: 10px; background: rgba(255,255,255,0.2);
@@ -137,8 +138,8 @@
     @media (max-width: 600px) {
         #throttle-control { right: 10px; height: 200px; width: 60px; }
         #slider-track { height: 120px; }
-        .stats-panel { left: 10px; padding: 10px; min-width: 120px; }
-        #emergency-btn { bottom: 40px; font-size: 0.9rem; }
+        .stats-panel { bottom: 10px; left: 10px; padding: 10px; min-width: 120px; }
+        #emergency-btn { bottom: 140px; font-size: 0.9rem; }
     }
 </style>
 </head>
@@ -150,7 +151,8 @@
     <div id="ui-layer">
         <div class="stats-panel">
             <div class="money-display">€<span id="money">0</span></div>
-            <div style="font-size: 0.8rem; opacity: 0.8;">FUEL CAPACITY</div>
+            <div class="satisfaction-display">PASSENGERS: <span id="satisfaction">100</span>%</div>
+            <div style="font-size: 0.7rem; opacity: 0.8; letter-spacing: 1px;">FUEL CAPACITY</div>
             <div class="fuel-bar-container"><div id="fuel-bar"></div></div>
         </div>
 
